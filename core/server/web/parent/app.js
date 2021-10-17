@@ -26,6 +26,11 @@ module.exports = function setupParentApp(options = {}) {
     parentApp.use(mw.ghostLocals);
 
     // Mount the express apps on the parentApp
+    if(config.get('auth:enabled') === true) {
+        // AUTH
+        const authApp = require('./auth')();
+        parentApp.use(vhost(vhostUtils.getBackendHostArg(), authApp));
+    }
 
     // ADMIN + API
     const backendApp = require('./backend')();

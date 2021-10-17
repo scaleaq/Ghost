@@ -31,6 +31,7 @@ module.exports.Router = (name, options) => {
 };
 
 module.exports.static = express.static;
+module.exports.urlencoded = express.urlencoded;
 
 // Export the OG module for testing based on the internals
 module.exports._express = express;
