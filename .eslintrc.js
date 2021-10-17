@@ -44,15 +44,15 @@ module.exports = {
             files: 'core/frontend/**',
             rules: {
                 'ghost/node/no-restricted-require': ['off', [
+                    // If we make the frontend entirely independent, these have to be solved too
+                    // {
+                    //     name: path.resolve(__dirname, 'core/shared/**'),
+                    //     message: 'Invalid require of core/shared from core/frontend.'
+                    // },
                     // These are critical refactoring issues that we need to tackle ASAP
                     {
-                        name: path.resolve(__dirname, 'core/server/**'),
+                        name: [path.resolve(__dirname, 'core/server/**'), `!${path.resolve(__dirname, 'core/server/lib/common/**')}`],
                         message: 'Invalid require of core/server from core/frontend.'
-                    },
-                    // If we make the frontend entirely independent, these have to be solved too
-                    {
-                        name: path.resolve(__dirname, 'core/shared/**'),
-                        message: 'Invalid require of core/shared from core/frontend.'
                     }
                 ]]
             }
@@ -62,7 +62,8 @@ module.exports = {
             rules: {
                 'ghost/node/no-restricted-require': ['off', [
                     {
-                        name: path.resolve(__dirname, 'core/frontend/**'),
+                        // Throw an error for all requires of the frontend, _except_ the url service which will be moved soon
+                        name: [path.resolve(__dirname, 'core/frontend/**'), `!${path.resolve(__dirname, 'core/frontend/services/url/**')}`],
                         message: 'Invalid require of core/frontend from core/server.'
                     }
                 ]]
