@@ -88,12 +88,12 @@ module.exports = () => {
 
   const authApp = express('auth');
   authApp.use(cookieParser());
-  // authApp.use(expressSession({ secret: 'keyboard cat', resave: true, saveUninitialized: false }));
+  authApp.use(expressSession({ secret: 'keyboard cat', resave: true, saveUninitialized: false }));
 
   authApp.use(express.urlencoded({ extended : true }));
 
   authApp.use(passport.initialize());
-  // authApp.use(passport.session());
+  authApp.use(passport.session());
 
   authApp.get('/login',
     function(req, res, next) {
