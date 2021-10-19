@@ -16,7 +16,9 @@ module.exports = {
                 'version',
                 'oauth',
                 'sentry_dsn',
-                'sentry_env'
+                'sentry_env',
+                'customAdminAuthEnabled',
+                'customAdminAuthSigninUrl'
             ])
         };
     }

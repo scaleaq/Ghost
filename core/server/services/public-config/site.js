@@ -12,7 +12,8 @@ module.exports = function getSiteProperties() {
         icon: settingsCache.get('icon'),
         accent_color: settingsCache.get('accent_color'),
         url: urlUtils.urlFor('home', true),
-        version: ghostVersion.safe
+        version: ghostVersion.safe,
+        customAdminAuthEnabled: false
     };
 
     if (labs.isSet('oauthLogin') && settingsCache.get('oauth_client_id') && settingsCache.get('oauth_client_secret')) {
@@ -24,6 +25,13 @@ module.exports = function getSiteProperties() {
         siteProperties.sentry_dsn = config.get('client_sentry').dsn;
         siteProperties.sentry_env = config.get('env');
     }
+
+    if (config.get('adapters:sso')) {
+        // Only set the oauth flag if oauth is enabled to avoid API changes
+        siteProperties.customAdminAuthEnabled = true;
+        siteProperties.customAdminAuthSigninUrl = config.get('adapters:sso:scaleaq-sso:signinUrl');
+    }
+
 
     return siteProperties;
 };
