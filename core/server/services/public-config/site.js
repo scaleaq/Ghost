@@ -26,7 +26,7 @@ module.exports = function getSiteProperties() {
         siteProperties.sentry_env = config.get('env');
     }
 
-    if (config.get('adapters:sso')) {
+    if (config.get('adapters:sso:scaleaq-sso')) {
         // Only set the oauth flag if oauth is enabled to avoid API changes
         siteProperties.customAdminAuthEnabled = true;
         siteProperties.customAdminAuthSigninUrl = config.get('adapters:sso:scaleaq-sso:signinUrl');
