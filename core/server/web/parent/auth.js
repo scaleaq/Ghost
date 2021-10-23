@@ -24,7 +24,7 @@ module.exports = () => {
       if (req.isAuthenticated()) { return next(); }
 
       //Store return to url
-      req.session.returnTo = req.;
+      req.session.returnTo = req.originalUrl;
       res.redirect('/login');
   }
 
