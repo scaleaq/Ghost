@@ -66,7 +66,8 @@ module.exports = () => {
   let sess = {
     secret: 'keyboard cat', 
     resave: true, 
-    saveUninitialized: false
+    saveUninitialized: false,
+    cookie: {}
   };
   
   if (authApp.get('env') === 'production') {
