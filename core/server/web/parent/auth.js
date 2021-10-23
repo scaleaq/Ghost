@@ -4,6 +4,7 @@ const debug = require('@tryghost/debug')('scaleaq:auth');
 const cookieParser = require('cookie-parser');
 const expressSession = require('express-session');
 const config = require('../../../shared/config');
+const crypto = require('crypto');
 
 module.exports = () => {
   debug('AuthApp setup start');
@@ -21,34 +22,21 @@ module.exports = () => {
           debug('found user!');
       }
       if (req.isAuthenticated()) { return next(); }
+
+      //Store return to url
+      req.session.returnTo = req.;
       res.redirect('/login');
   }
 
   passport.serializeUser((user, done) => {
       debug('Serializing user');
-      done(null, user.oid);
+      done(null, user);
   });
     
-  passport.deserializeUser((oid, done) => {
+  passport.deserializeUser((user, done) => {
       debug('Deserializing user');
-      findByOid(oid, function (err, user) {
-          done(err, user);
-      });
+      done(null, user);
   });
-
-  // array to hold logged in users
-  var users = [];
-
-  var findByOid = function(oid, fn) {
-    for (var i = 0, len = users.length; i < len; i++) {
-      var user = users[i];
-    debug('we are using user: ', user);
-      if (user.oid === oid) {
-        return fn(null, user);
-      }
-    }
-    return fn(null, null);
-  };
 
   const OIDCStrategy = require('passport-azure-ad').OIDCStrategy;
 
@@ -69,26 +57,22 @@ module.exports = () => {
       if (!profile.oid) {
           return done(new Error("No oid found"), null);
         }
-        // asynchronous verification, for effect...
-        process.nextTick(function () {
-          findByOid(profile.oid, function(err, user) {
-            if (err) {
-              return done(err);
-            }
-            if (!user) {
-              // "Auto-registration"
-              users.push(profile);
-              return done(null, profile);
-            }
-            return done(null, user);
-          });
-        });
+        return done(null, profile);
     }
   ));
 
   const authApp = express('auth');
   authApp.use(cookieParser());
-  authApp.use(expressSession({ secret: 'keyboard cat', resave: true, saveUninitialized: false }));
+  let sess = {
+    secret: 'keyboard cat', 
+    resave: true, 
+    saveUninitialized: false
+  };
+  
+  if (authApp.get('env') === 'production') {
+    sess.cookie.secure = true // serve secure cookies
+  }
+  authApp.use(expressSession(sess));
 
   authApp.use(express.urlencoded({ extended : true }));
 
@@ -99,9 +83,7 @@ module.exports = () => {
     function(req, res, next) {
       passport.authenticate('azuread-openidconnect', 
         { 
-          response: res,
           session: false,
-          failureRedirect: '/' 
         }
       )(req, res, next);
     },
@@ -111,11 +93,39 @@ module.exports = () => {
 
   authApp.post('/redirect',
     function(req, res, next) {
-      passport.authenticate('azuread-openidconnect', { response: res })(req, res, next);
-    },
-    function(req, res) {
-      res.redirect('/');
+      passport.authenticate('azuread-openidconnect', { request: req, successReturnToOrRedirect: req.session.returnTo })(req, res, next);
     });
+    // function(req, res) {
+    //   res.redirect('/');
+    // });
+
+  authApp.get('/commento-sso', ensureAuthenticated, (req, res, next) => {
+    let key = process.env.COMMENTO_KEY;
+    let token = req.query.token;
+    let hmac = req.query.hmac;
+
+    let bufferedToken = Buffer.from(token, 'hex');
+    let bufferedKey = Buffer.from(key, 'hex');
+
+    let expectedHmac = crypto.createHmac('sha256', bufferedKey).update(bufferedToken).digest('hex');
+    
+    if(hmac != expectedHmac) {
+      return res.sendStatus(401);
+    }
+
+    let payload = {
+      "token": token,
+      "email": req.user.upn,
+      "name":  req.user.displayName,
+      "link":  "",
+      "photo": "",
+    };
+
+    let payloadStr = JSON.stringify(payload);
+    let payloadHex = Buffer.from(payloadStr, 'utf8').toString('hex');
+    let hmacRes = crypto.createHmac('sha256', bufferedKey).update(payloadStr).digest('hex');
+    res.redirect(`https://commento.scaleaq.com/api/oauth/sso/callback?payload=${payloadHex}&hmac=${hmacRes}`);
+  });
 
   authApp.use(ensureAuthenticated, (req, res, next) => {
       next();
